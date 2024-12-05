@@ -4,6 +4,7 @@ import mongoose, { Model } from 'mongoose';
 import { User } from './user.entity';
 import { authCredentialsDto } from './dto/auth-credentail.dto';
 import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
@@ -11,7 +12,8 @@ export class AuthService {
         @InjectConnection()
         private readonly connectopm: mongoose.Connection,
         @InjectModel(User.name)
-        private readonly userModel: Model<User>
+        private readonly userModel: Model<User>,
+        private readonly jwtService: JwtService,
     ){}
 
     async signUp(authCredentialsDto: authCredentialsDto): Promise<void> {
@@ -37,12 +39,16 @@ export class AuthService {
         return await this.userModel.findOne({userName});
     }
 
-    async signin(authCredentialsDto: authCredentialsDto): Promise<string> {
+    async signin(authCredentialsDto: authCredentialsDto): Promise<{accessToken: string}> {
         const {userName, password} = authCredentialsDto;
         const user = await this.findUserByName(userName);
 
         if (user && (await bcrypt.compare(password, user.password))) {
-            return 'login success';
+
+            const payload = {userName};
+            const accessToken = await this.jwtService.sign(payload);
+
+            return { accessToken} ;
          } else {
             throw new UnauthorizedException('logIn filed');
          }
