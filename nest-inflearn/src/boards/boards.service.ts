@@ -1,18 +1,28 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Board, BoardStatus } from './boards.model';
+import { Board } from './board.entity';
+import { BoardStatus } from './board-status.enum';
 import { v4 as uuid } from 'uuid';
 import { CreateBoardDto } from './dto/create-board.dto';
+import { get } from 'http';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import mongoose, { Model } from 'mongoose';
 
 @Injectable()
 export class BoardsService {
-    private boards: Board[] = [];
+    constructor(
+        @InjectConnection()
+        private readonly connection: mongoose.Connection,
+        @InjectModel(Board.name)
+        private readonly boardModel: Model<Board>
+    ){}
 
-    getAllBoards(): Board[] {
-        return this.boards;
+
+    async getAllBoards(): Promise<Board[]> {
+        return this.boardModel.find().exec();
     }
 
-    getBoardById(id: string) : Board {
-        const found = this.boards.find((board ) => board.id === id);
+    async getBoardById(id: string) : Promise<Board> {
+        const found = await this.boardModel.findById(id).exec();
 
         if (!found) {
             throw new NotFoundException(`Can not find board with id ${id}`);
@@ -20,27 +30,25 @@ export class BoardsService {
         return found;
     }
 
-    createBoard(createBoardDto: CreateBoardDto): Board {
+    async createBoard(createBoardDto: CreateBoardDto): Promise<Board> {
         const {title, description} = createBoardDto;
 
-        const board: Board = {
-            id: uuid(),
+        const newBoard = new this.boardModel({
             title,
-            description,
-            status: BoardStatus.PUBLIC
-        }
-
-        this.boards.push(board);
-        return board;
+            description
+        });
+        return newBoard.save();
     }
 
     deleteBoard(id: string): void {
-        this.boards = this.boards.filter((board) => board.id !== id);
+       this.boardModel.findByIdAndDelete(id).exec();
     }
 
-    updateBoard(id: string, status: BoardStatus): Board {
-        const board = this.getBoardById(id);
-        board.status = status;
-        return board;
+    async updateBoard(id: string, status: BoardStatus): Promise<Board> {
+        return this.boardModel.findByIdAndUpdate(
+            id,
+            {status},
+            {new: true},
+        ).exec();
     }
 }
