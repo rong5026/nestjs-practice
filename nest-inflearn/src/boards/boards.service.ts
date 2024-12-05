@@ -16,7 +16,6 @@ export class BoardsService {
         private readonly boardModel: Model<Board>
     ){}
 
-
     async getAllBoards(): Promise<Board[]> {
         return this.boardModel.find().exec();
     }
