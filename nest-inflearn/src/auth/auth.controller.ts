@@ -12,5 +12,10 @@ export class AuthController {
     signUp(@Body(ValidationPipe) authCredentialsDto: authCredentialsDto): Promise<void>{
         return this.authService.signUp(authCredentialsDto);
     }
+
+    @Post('/signin')
+    signIn(@Body(ValidationPipe) authCredentialsDto: authCredentialsDto) {
+        return this.authService.signin(authCredentialsDto);
+    }
     
 }
